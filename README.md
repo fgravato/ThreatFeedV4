@@ -26,7 +26,7 @@ This system allows you to manage threat feeds using the Lookout API. It provides
 To run the Threat Feed Management System, execute the following command in your terminal:
 
 ```
-python main.py
+python improved_threat_feed_management.py
 ```
 
 The system will present you with a menu-driven interface. Here are the main options:
