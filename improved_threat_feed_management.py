@@ -31,6 +31,7 @@ import re
 import logging
 from urllib.parse import urlparse
 from typing import List, Optional, Dict
+import argparse
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -38,6 +39,18 @@ logger = logging.getLogger(__name__)
 
 # API endpoint URL
 BASE_URL = "https://api.lookout.com/mgmt/threat-feeds/api/v1"
+
+# Parse command-line arguments
+def parse_args():
+    parser = argparse.ArgumentParser(description="Threat Feed Management System")
+    parser.add_argument("--list-feeds", action="store_true", help="List all feeds")
+    parser.add_argument("--create-feed", nargs=3, metavar=("TYPE", "TITLE", "DESCRIPTION"), help="Create a new feed")
+    parser.add_argument("--view-feed", metavar="FEED_ID", help="View details of a specific feed")
+    parser.add_argument("--update-feed", nargs=2, metavar=("FEED_ID", "SOURCE_URL"), help="Update feed content")
+    parser.add_argument("--delete-feed", metavar="FEED_ID", help="Delete a feed")
+    parser.add_argument("--add-domain", nargs=2, metavar=("FEED_ID", "DOMAIN"), help="Add a domain to a feed")
+    parser.add_argument("--remove-domain", nargs=2, metavar=("FEED_ID", "DOMAIN"), help="Remove a domain from a feed")
+    return parser.parse_args()
 
 # File paths
 API_KEY_FILE = "api_key.txt"
