@@ -402,9 +402,9 @@ def create_new_feed(access_token: str) -> None:
     if feed_id:
         print(f"\nNew threat feed created successfully!")
         print(f"Feed ID: {feed_id}")
-        add_domains = input("Would you like to add domains to this feed now? (y/n): ").lower()
+        add_domains = input("Would you like to add a domain to this feed now? (y/n): ").lower()
         if add_domains == 'y':
-            add_domains_to_feed(feed_id, access_token)
+            add_domain_to_feed(feed_id, access_token)
 
 def add_domain_to_feed(feed_id: str, access_token: str) -> None:
     """Add a domain to the feed."""
