@@ -478,6 +478,7 @@ def manage_feeds(access_token: str) -> None:
 
 def main() -> None:
     """Main function to run the threat feed management script."""
+    args = parse_args()
     api_key = load_api_key()
     if not api_key:
         logger.error("Please provide a valid API key in the 'api_key.txt' file.")
@@ -488,19 +489,41 @@ def main() -> None:
         logger.error("Failed to retrieve access token. Please check your API key.")
         return
 
-    while True:
-        display_main_menu()
-        choice = input("Enter your choice (1-3): ")
+    if args.list_feeds:
+        list_feeds(access_token)
+    elif args.create_feed:
+        feed_type, title, description = args.create_feed
+        create_threat_feed(feed_type, title, description, access_token)
+    elif args.view_feed:
+        metadata = get_feed_metadata(args.view_feed, access_token)
+        if metadata:
+            print(json.dumps(metadata, indent=2))
+    elif args.update_feed:
+        feed_id, source_url = args.update_feed
+        update_feed_content(feed_id, source_url, access_token)
+    elif args.delete_feed:
+        delete_threat_feed(args.delete_feed, access_token)
+    elif args.add_domain:
+        feed_id, domain = args.add_domain
+        upload_threat_domains(feed_id, [f"ADD,{domain}"], access_token)
+    elif args.remove_domain:
+        feed_id, domain = args.remove_domain
+        upload_threat_domains(feed_id, [f"DELETE,{domain}"], access_token)
+    else:
+        # If no arguments are provided, run the interactive menu
+        while True:
+            display_main_menu()
+            choice = input("Enter your choice (1-3): ")
 
-        if choice == "1":
-            manage_feeds(access_token)
-        elif choice == "2":
-            create_new_feed(access_token)
-        elif choice == "3":
-            print("Thank you for using the Threat Feed Management System. Goodbye!")
-            break
-        else:
-            print("Invalid choice. Please try again.")
+            if choice == "1":
+                manage_feeds(access_token)
+            elif choice == "2":
+                create_new_feed(access_token)
+            elif choice == "3":
+                print("Thank you for using the Threat Feed Management System. Goodbye!")
+                break
+            else:
+                print("Invalid choice. Please try again.")
 
 if __name__ == "__main__":
-    main()            
+    main()
