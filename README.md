@@ -1,166 +1,133 @@
-# Improved Threat Feed Management System
+# Threat Feed Management System
 
-This system allows you to manage threat feeds using the Lookout API. It provides a user-friendly interface for creating, viewing, updating, and deleting threat feeds, as well as managing the domains within those feeds.
+Manage Lookout threat feeds via the Lookout REST API. Supports an interactive menu and non-interactive CLI for automation and scripting.
 
 ## Features
 
-- Create new threat feeds
-- List existing threat feeds
-- View feed details
-- Update feed content from online sources
-- Delete threat feeds
-- Add and remove domains from feeds
-- User-friendly command-line interface with color coding
-- Command-line argument support for automation
-- Pagination for viewing domains
-- Enhanced error handling and logging
-- Input validation for user inputs
-- Breadcrumb navigation
-- Universal navigation shortcuts
+- Browse feeds in a numbered table — pick one to manage it
+- View, add, remove, and bulk-update domains within a feed
+- Update feed content from a remote URL (OVERWRITE or INCREMENTAL)
+- Delete feeds with typed confirmation
+- Batch domain operations: multiple domains inline or from a file
+- Paginated domain viewer with forward/back navigation
+- Color-coded terminal interface with breadcrumb navigation
+- Full CLI automation support with proper exit codes
 
 ## Prerequisites
 
 - Python 3.x
-- pip (Python package installer)
+- `pip install -r requirements.txt`
 
-## Installation
+## Setup
 
-1. Install the required dependencies:
+Create an `api_key.txt` file in the project directory containing your Lookout API key:
 
-   ```
-   pip install -r requirements.txt
-   ```
-
-2. Create an `api_key.txt` file in the root directory of the project and paste your Lookout API key into it:
-
-   ```
-   echo "your-api-key-here" > api_key.txt
-   ```
-
-## Usage
-
-### Interactive Mode
-
-To run the Threat Feed Management System in interactive mode, execute the following command in your terminal:
-
+```bash
+echo "your-api-key-here" > api_key.txt
 ```
+
+## Interactive Mode
+
+```bash
 python improved_threat_feed_management.py
 ```
 
-The system will present you with a menu-driven interface with the following features:
+**Navigation:** `b` goes back one level, `q` quits from anywhere.
 
-- Color-coded interface for better readability
-- Breadcrumb navigation showing your current location
-- Universal navigation shortcuts (b: Back, h: Home, q: Quit)
-- Context-aware menus showing current feed information
+**Menu flow:**
 
-Main menu options:
-1. View and Manage Existing Feeds
-2. Create a New Threat Feed
-3. Exit
+```
+Main Menu
+├── 1. Browse and manage feeds
+│       Shows a table of all feeds. Enter a number to open a feed.
+│       Inside a feed:
+│           1. View domains (paginated, n/p to page)
+│           2. Add domain(s)   — space-separated list or file path
+│           3. Remove domain(s) — space-separated list or file path
+│           4. Update from URL
+│           5. Delete this feed  (requires typing 'yes')
+└── 2. Create a new feed
+```
 
-### Command-line Arguments
+## CLI Reference
 
-The script supports command-line arguments for automation:
+```bash
+python improved_threat_feed_management.py [OPTIONS]
+```
 
-- `--list-feeds`: List all feeds
-- `--create-feed TYPE TITLE DESCRIPTION`: Create a new feed
-- `--view-feed FEED_ID`: View details of a specific feed
-- `--update-feed FEED_ID SOURCE_URL`: Update feed content
-- `--upload-type {INCREMENTAL,OVERWRITE}`: Specify upload type for updating feed content (default: OVERWRITE)
-- `--delete-feed FEED_ID`: Delete a feed
-- `--add-domain FEED_ID DOMAIN`: Add a domain to a feed
-- `--remove-domain FEED_ID DOMAIN`: Remove a domain from a feed
+| Flag | Description |
+|---|---|
+| `--list-feeds` | Print all feeds as a table |
+| `--create-feed TITLE DESC` | Create a new CSV feed |
+| `--view-feed FEED_ID` | Print feed metadata as JSON |
+| `--update-feed FEED_ID URL` | Download and upload domains from a URL |
+| `--upload-type INCREMENTAL\|OVERWRITE` | Upload mode for `--update-feed` (default: OVERWRITE) |
+| `--delete-feed FEED_ID` | Delete a feed |
+| `--add-domain FEED_ID d1 [d2 ...]` | Add one or more domains |
+| `--remove-domain FEED_ID d1 [d2 ...]` | Remove one or more domains |
+| `--add-domains-file FEED_ID FILE` | Add all domains from a file |
+| `--remove-domains-file FEED_ID FILE` | Remove all domains from a file |
+| `--no-verify-ssl` | Disable SSL verification for URL downloads |
 
-Example:
+Exit code is `1` on any error.
+
+### Examples
+
 ```bash
 # List all feeds
 python improved_threat_feed_management.py --list-feeds
 
-# Create a new feed
-python improved_threat_feed_management.py --create-feed CSV "My New Feed" "Description of my new feed"
+# Create a feed (type is always CSV)
+python improved_threat_feed_management.py --create-feed "My Feed" "Phishing domains for ACME"
 
-# Update feed content with INCREMENTAL mode
-python improved_threat_feed_management.py --update-feed feed-id-123 https://example.com/threats.txt --upload-type INCREMENTAL
+# Add multiple domains at once
+python improved_threat_feed_management.py --add-domain FEED_ID evil.com phishing.net malware.org
+
+# Add domains from a file
+python improved_threat_feed_management.py --add-domains-file FEED_ID domains.txt
+
+# Remove domains from a file
+python improved_threat_feed_management.py --remove-domains-file FEED_ID stale_domains.txt
+
+# Update feed from a URL (replace all)
+python improved_threat_feed_management.py --update-feed FEED_ID https://example.com/feed.txt
+
+# Update feed incrementally (add new domains only)
+python improved_threat_feed_management.py --update-feed FEED_ID https://example.com/feed.txt --upload-type INCREMENTAL
+
+# Delete a feed
+python improved_threat_feed_management.py --delete-feed FEED_ID
 ```
 
-## Feed Content Upload Types
+## Domain Files
 
-The system supports two types of feed content updates:
+Domain files used with `--add-domains-file`, `--remove-domains-file`, or typed into interactive add/remove prompts follow this format:
 
-### 1. OVERWRITE Mode (Default)
-- Replaces all existing domains in the feed
-- Uses a simple CSV format with a single 'domain' column
-- Example CSV:
-  ```
-  domain
-  example.com
-  malicious.com
-  ```
+- One domain per line
+- Lines starting with `#` are treated as comments and skipped
+- Blank lines are skipped
+- Invalid domains are skipped with a warning
 
-### 2. INCREMENTAL Mode
-- Adds or removes specific domains from the feed
-- Uses CSV format with 'domain' and 'action' columns
-- Supported actions: 'add' or 'delete'
-- Example CSV:
-  ```
-  domain,action
-  example.com,add
-  malicious.com,delete
-  ```
+```
+# Phishing domains — updated 2026-04
+evil.com
+phishing.net
+# malware.org  (disabled)
+bad-actor.io
+```
 
-## Enhancements
+## Upload Modes
 
-1. **Improved Navigation**:
-   - Added breadcrumb navigation showing current location
-   - Implemented universal navigation shortcuts
-   - Added context-aware headers showing current feed
-   - Enhanced visual hierarchy with color coding
-
-2. **Feed Content Management**:
-   - Added support for INCREMENTAL and OVERWRITE upload types
-   - Improved CSV format handling according to API specifications
-   - Enhanced domain processing with better validation
-   - Added clear progress indicators for content updates
-
-3. **User Interface**:
-   - Added color coding for better readability
-   - Enhanced visual feedback for operations
-   - Improved error messages and warnings
-   - Added operation status indicators
-   - Enhanced menu organization and flow
-
-4. **Command-line Improvements**:
-   - Added upload type control via command line
-   - Enhanced argument handling
-   - Improved feedback for command-line operations
-
-5. **Other Improvements**:
-   - Enhanced error handling and validation
-   - Added confirmation prompts for critical actions
-   - Improved progress indicators
-   - Added support for interactive domain management
+| Mode | Behaviour |
+|---|---|
+| `OVERWRITE` | Replaces **all** domains in the feed with the new list |
+| `INCREMENTAL` | Merges changes — adds new domains, removes deleted ones |
 
 ## Troubleshooting
 
-If you encounter any issues:
-
-1. Ensure your API key is correct and properly saved in the `api_key.txt` file.
-2. Check your internet connection, as the script needs to communicate with the Lookout API.
-3. Verify that you have the required Python version and all dependencies installed.
-4. Check the CSV format matches the selected upload type (INCREMENTAL or OVERWRITE).
-
-## Navigation Shortcuts
-
-The following shortcuts are available throughout the application:
-
-- `b`: Go back to the previous menu
-- `h`: Return to the home/main menu
-- `q`: Quit the application
-
-## Contributing
-
-Contributions to improve the Threat Feed Management System are welcome. Please feel free to submit pull requests or open issues to discuss proposed changes or report bugs.
+- **API key error** — ensure `api_key.txt` exists in the script directory and contains a valid key.
+- **SSL errors on URL update** — use `--no-verify-ssl` if the source URL uses a self-signed certificate.
+- **Domains skipped** — the domain validator rejects IP addresses, bare hostnames, and entries with spaces or special characters. Check the logged warnings.
 
 ## Author
 
