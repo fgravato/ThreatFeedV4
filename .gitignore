@@ -1,0 +1,5 @@
+CLAUDE.md
+api_key.txt
+feed_id.txt
+__pycache__/
+*.pyc
