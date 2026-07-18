@@ -19,24 +19,54 @@ automation and scripting.
   request timeouts, and automatic bearer-token refresh on expiry
 - Full CLI automation support with consistent exit codes
 
-## Prerequisites
+## Installation
 
-- Python 3.9+
-- `pip install -r requirements.txt` (or `pip install .` to get the `threatfeed` command)
+Requires Python 3.9+.
 
-For development (tests): `pip install -r requirements-dev.txt`
+```bash
+# 1. Clone and enter the project
+cd ThreatFeedV4
+
+# 2. Create an isolated environment and install the tool into it
+python3 -m venv .venv
+.venv/bin/pip install -e .
+
+# 3. (Optional) activate the venv so you can just type `threatfeed`
+source .venv/bin/activate
+```
+
+Step 2 gives you the `threatfeed` command. If you skip step 3, call it as
+`.venv/bin/threatfeed` (or use `python improved_threat_feed_management.py`).
+
+For development (test suite, mocking library):
+
+```bash
+.venv/bin/pip install -r requirements-dev.txt
+.venv/bin/pytest
+```
 
 ## Setup
 
 Provide your Lookout API key in one of two ways:
 
 ```bash
-# Option 1: environment variable
+# Option 1: environment variable (recommended for automation)
 export LOOKOUT_API_KEY="your-api-key-here"
 
 # Option 2: a file in the project directory (keep it private!)
 echo "your-api-key-here" > api_key.txt
 chmod 600 api_key.txt
+```
+
+The environment variable takes precedence. The file is resolved relative to
+the project directory, so the tool works from any CWD.
+
+## Running
+
+```bash
+threatfeed                # interactive menu
+threatfeed --help         # full CLI reference
+threatfeed list           # quick sanity check: lists your feeds
 ```
 
 ## Interactive Mode
@@ -119,6 +149,51 @@ threatfeed search FEED_ID evil
 # Scripting with jq
 threatfeed --json list | jq '.[].title'
 ```
+
+## Recommended Workflow
+
+**Daily manual work → interactive menu.** Run `threatfeed` with no arguments.
+Removals and URL updates show a diff and ask for `yes` before applying, and
+`/pattern` filters large feeds in the domain viewer.
+
+**Automation → subcommands.** Prefer the subcommands (`list`, `add`,
+`update`, ...) over legacy flags for anything new; pass `-y` to skip prompts
+in cron jobs and CI:
+
+```bash
+# Scheduled feed refresh
+threatfeed update FEED_ID https://intel-source.example.com/feed.txt -y
+```
+
+**The golden rule: dry-run before mutating.** Preview the exact change, then
+apply only if the diff looks right:
+
+```bash
+threatfeed update FEED_ID https://example.com/feed.txt --dry-run
+#   Current domains: 940
+#   + 37 to add   - 120 to remove   = 820 unchanged
+threatfeed update FEED_ID https://example.com/feed.txt -y
+```
+
+An OVERWRITE that would unexpectedly remove hundreds of domains is exactly
+what this catches. `--dry-run` is also available on `add` and `remove`.
+
+**Back up before risky operations.** Export and import use the same format,
+so backup → restore just works:
+
+```bash
+threatfeed export FEED_ID -o backup-$(date +%F).txt    # snapshot
+threatfeed update FEED_ID URL -y                       # do the risky thing
+threatfeed add FEED_ID --file backup-2026-07-18.txt    # rollback if needed
+```
+
+| Situation | Use |
+|---|---|
+| Exploring, one-off edits, unsure of feed ID | Interactive menu |
+| Cron jobs, CI, repeatable ops | Subcommands with `-y` |
+| Anything touching OVERWRITE | `--dry-run` first, always |
+| Bulk adds from threat intel files | `add FEED_ID --file` |
+| Auditing "is X in the feed?" | `search FEED_ID X` or `--json` + `jq` |
 
 ### Legacy flags
 
