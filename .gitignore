@@ -3,3 +3,6 @@ api_key.txt
 feed_id.txt
 __pycache__/
 *.pyc
+.venv/
+*.egg-info/
+.pytest_cache/

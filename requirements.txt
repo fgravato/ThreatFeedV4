@@ -1,4 +1,2 @@
-requests
-urllib3
-typing-extensions
-logging
+requests>=2.31
+urllib3>=2.0
