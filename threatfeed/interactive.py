@@ -5,9 +5,9 @@ import sys
 from dataclasses import dataclass, field
 from typing import List, Optional
 
-from .client import DomainDiff, ThreatFeedClient, ThreatFeedError
-from .domains import diff_domains, parse_domain_lines
-from .output import Colors, colorize, divider
+from .client import ThreatFeedClient, ThreatFeedError
+from .domains import DomainDiff, diff_domains, parse_domain_lines
+from .output import Colors, colorize, divider, print_diff
 
 PAGE_SIZE = 20
 
@@ -82,22 +82,6 @@ def _is_quit(choice: str) -> bool:
 
 def _confirm(question: str) -> bool:
     return _prompt(f"{question}  Type 'yes' to confirm").lower() == "yes"
-
-
-def _print_diff_summary(diff: DomainDiff) -> None:
-    print(f"\n  Current domains: {diff.current_count}")
-    print(colorize(f"  + {len(diff.added)} to add", Colors.GREEN))
-    print(colorize(f"  - {len(diff.removed)} to remove", Colors.RED))
-    print(f"  = {len(diff.unchanged)} unchanged")
-    for label, items, color in (
-        ("add", diff.added, Colors.GREEN),
-        ("remove", diff.removed, Colors.RED),
-    ):
-        if items:
-            preview = ", ".join(items[:10]) + (", ..." if len(items) > 10 else "")
-            print(colorize(f"    {label}: {preview}", color))
-    if not diff.changed:
-        _info("No changes — the feed already matches.")
 
 
 # ── Input helper ──────────────────────────────────────────────────────────────
@@ -370,7 +354,7 @@ def _remove_domains(feed_id: str, client: ThreatFeedClient, ctx: MenuContext) ->
     current_set = set(current)
     target_set = set(targets)
     present = sorted(target_set & current_set)
-    _print_diff_summary(DomainDiff(
+    print_diff(DomainDiff(
         len(current),
         added=[],
         removed=present,
@@ -422,7 +406,7 @@ def _update_from_url(feed_id: str, client: ThreatFeedClient, ctx: MenuContext) -
         else:
             desired = sorted(set(current) | set(extracted))
         added, removed, unchanged = diff_domains(current, desired)
-        _print_diff_summary(DomainDiff(len(current), added, removed, unchanged))
+        print_diff(DomainDiff(len(current), added, removed, unchanged))
 
         if upload_type == "OVERWRITE" and not _confirm("Apply this OVERWRITE?"):
             _info("Cancelled.")

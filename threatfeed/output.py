@@ -58,6 +58,23 @@ def print_json(data: Any) -> None:
     print(json.dumps(data, indent=2))
 
 
+def print_diff(diff) -> None:
+    """Render a DomainDiff summary with a short preview of each side."""
+    print(f"  Current domains: {diff.current_count}")
+    print(colorize(f"  + {len(diff.added)} to add", Colors.GREEN))
+    print(colorize(f"  - {len(diff.removed)} to remove", Colors.RED))
+    print(f"  = {len(diff.unchanged)} unchanged")
+    for label, items, color in (
+        ("add", diff.added, Colors.GREEN),
+        ("remove", diff.removed, Colors.RED),
+    ):
+        if items:
+            preview = ", ".join(items[:10]) + (", ..." if len(items) > 10 else "")
+            print(colorize(f"    {label}: {preview}", color))
+    if not diff.changed:
+        print(colorize("  No changes — the feed already matches.", Colors.YELLOW))
+
+
 def print_table(headers: Sequence[str], rows: Sequence[Sequence[str]]) -> None:
     widths = [len(h) for h in headers]
     for row in rows:

@@ -6,7 +6,6 @@ pooling, retries with backoff, timeouts, and consistent error reporting.
 
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Sequence, Tuple
 from urllib.parse import urlparse
 
@@ -16,7 +15,13 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from . import config
-from .domains import build_csv, diff_domains, extract_domains_from_text, parse_elements_csv
+from .domains import (
+    DomainDiff,
+    build_csv,
+    extract_domains_from_text,
+    make_diff,
+    parse_elements_csv,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -31,20 +36,6 @@ class ThreatFeedError(Exception):
 
 class AuthenticationError(ThreatFeedError):
     """The API key was rejected or the token endpoint failed."""
-
-
-@dataclass
-class DomainDiff:
-    """What an upload would change, computed against live feed contents."""
-
-    current_count: int
-    added: List[str] = field(default_factory=list)
-    removed: List[str] = field(default_factory=list)
-    unchanged: List[str] = field(default_factory=list)
-
-    @property
-    def changed(self) -> bool:
-        return bool(self.added or self.removed)
 
 
 class ThreatFeedClient:
@@ -231,11 +222,7 @@ class ThreatFeedClient:
 
     def preview_changes(self, feed_id: str, desired: Sequence[str]) -> DomainDiff:
         """Diff a desired final domain list against the live feed contents."""
-        current = self.get_domains(feed_id)
-        added, removed, unchanged = diff_domains(current, desired)
-        return DomainDiff(
-            current_count=len(current), added=added, removed=removed, unchanged=unchanged
-        )
+        return make_diff(self.get_domains(feed_id), desired)
 
     # ── Remote source downloads ─────────────────────────────────────────────
 

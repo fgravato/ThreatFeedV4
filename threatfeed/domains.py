@@ -7,6 +7,7 @@ validated — both the CLI and the interactive UI use these helpers.
 import csv
 import io
 import re
+from dataclasses import dataclass, field
 from typing import Iterable, List, Optional, Sequence, Tuple
 from urllib.parse import urlparse
 
@@ -132,3 +133,24 @@ def diff_domains(
     cur = {normalize_domain(d) for d in current}
     new = {normalize_domain(d) for d in desired}
     return sorted(new - cur), sorted(cur - new), sorted(cur & new)
+
+
+@dataclass
+class DomainDiff:
+    """What an upload would change, computed against live feed contents."""
+
+    current_count: int
+    added: List[str] = field(default_factory=list)
+    removed: List[str] = field(default_factory=list)
+    unchanged: List[str] = field(default_factory=list)
+
+    @property
+    def changed(self) -> bool:
+        return bool(self.added or self.removed)
+
+
+def make_diff(current: Iterable[str], desired: Iterable[str]) -> DomainDiff:
+    """Build a DomainDiff between the current feed contents and a desired state."""
+    cur = list(current)
+    added, removed, unchanged = diff_domains(cur, desired)
+    return DomainDiff(len(cur), added, removed, unchanged)
