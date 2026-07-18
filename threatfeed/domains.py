@@ -8,6 +8,7 @@ import csv
 import io
 import re
 from typing import Iterable, List, Optional, Sequence, Tuple
+from urllib.parse import urlparse
 
 # Applied to normalized (lowercased) values. Rejects IPs, bare hostnames,
 # leading/trailing hyphens, and labels over 63 chars.
@@ -92,6 +93,31 @@ def parse_elements_csv(text: str) -> List[str]:
     if rows[0] and rows[0][0].strip().lower() == "domain":
         rows = rows[1:]
     return [row[0].strip() for row in rows if row and row[0].strip()]
+
+
+def extract_domains_from_text(text: str) -> List[str]:
+    """Pull unique hostnames out of arbitrary feed content.
+
+    Accepts plain domain lists and lines containing URLs; skips blank lines,
+    '#' comments, and anything that does not yield a valid domain. Results are
+    normalized and deduped, preserving first-seen order.
+    """
+    domains: List[str] = []
+    seen = set()
+    for line in text.splitlines():
+        entry = line.strip()
+        if not entry or entry.startswith("#"):
+            continue
+        candidate = entry if entry.startswith(("http://", "https://")) else "https://" + entry
+        netloc = urlparse(candidate).netloc
+        if not netloc:
+            continue
+        # Strip any userinfo and port from the authority component.
+        normalized = normalize_domain(netloc.split("@")[-1].split(":")[0])
+        if DOMAIN_PATTERN.match(normalized) and normalized not in seen:
+            seen.add(normalized)
+            domains.append(normalized)
+    return domains
 
 
 def diff_domains(

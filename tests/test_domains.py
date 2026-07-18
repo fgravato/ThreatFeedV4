@@ -3,6 +3,7 @@
 from threatfeed.domains import (
     build_csv,
     diff_domains,
+    extract_domains_from_text,
     is_valid_domain,
     normalize_domain,
     parse_domain_lines,
@@ -116,6 +117,26 @@ class TestParseElementsCsv:
 
     def test_header_only(self):
         assert parse_elements_csv("domain\n") == []
+
+
+class TestExtractDomainsFromText:
+    def test_plain_domains(self):
+        assert extract_domains_from_text("evil.com\nbad.io\n") == ["evil.com", "bad.io"]
+
+    def test_urls_reduce_to_hostname(self):
+        text = "https://evil.com/path?q=1\nhttp://bad.io:8080/x"
+        assert extract_domains_from_text(text) == ["evil.com", "bad.io"]
+
+    def test_skips_comments_blanks_and_garbage(self):
+        text = "# comment\n\nevil.com\nnot a domain\n"
+        assert extract_domains_from_text(text) == ["evil.com"]
+
+    def test_dedups_across_forms(self):
+        text = "evil.com\nhttps://EVIL.com/page\nhttps://evil.com:443/other"
+        assert extract_domains_from_text(text) == ["evil.com"]
+
+    def test_empty(self):
+        assert extract_domains_from_text("") == []
 
 
 class TestDiffDomains:
